@@ -48,8 +48,18 @@ jobs:
         cd $GITHUB_WORKSPACE
         mkdir android-kernel
         cd android-kernel
-        repo init -u https://android.googlesource.com/kernel/manifest -b android12-5.10-${{ inputs.os_patch_level }}_r1
+        # 1. 正常拉取主干清单，这个分支谷歌永远不会删，repo sync 绝对能成功
+        repo init --depth 1 -u https://android.googlesource.com/kernel/manifest -b common-android12-5.10
         repo sync
+        
+        # 2. 进入真正的核心代码目录
+        cd common
+        
+        # 3. 绕过坏掉的 repo，直接用 git 去谷歌服务器强行拉取 2023-05 的官方发行版标签！
+        git fetch https://android.googlesource.com/kernel/common refs/tags/android12-5.10-${{ inputs.os_patch_level }}_r1 --depth 1
+        
+        # 4. 把当前代码强制切换到刚刚拉取下来的 2023-05 标签版本
+        git checkout FETCH_HEAD
 
     - name: Apply patches and configuration files
       if: ${{ inputs.custom == true }}
